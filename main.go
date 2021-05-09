@@ -11,7 +11,7 @@ import (
 
 func main(){
 	log.Info(fmt.Sprintf("Starting scheduler with cron expression %s", env.CRON))
-	s := gocron.NewScheduler(time.UTC)
+	s := gocron.NewScheduler(time.Local)
 	s.Cron(env.CRON).Do(tasks.CleaningTask)
 	s.StartBlocking()
 }
