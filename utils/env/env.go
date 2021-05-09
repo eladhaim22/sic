@@ -5,7 +5,10 @@ import (
 )
 
 var (
-	ExcludeImages              = utils.Getenv("EXCLUDE_IMAGES", "")
-	CRON                       = utils.Getenv("CRON", "*/30 * * * * *")
+	ExcludeImages     = utils.GetEnv("EXCLUDE_IMAGES", "")
+	CRON              = utils.GetEnv("CRON", "*/30 * * * *")
+	SwarmMode         = utils.GetBooleanEnv("SWARM_MODE", false)
+	NodesAgentsIp     = utils.GetEnv("NODES_AGENTS_IP", "")
+	NodesAgentsPort   = utils.GetEnv("NODES_AGENTS_PORT", "")
 )
 
