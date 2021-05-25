@@ -29,6 +29,8 @@ func CleaningTask(){
 		for _, imageToDelete := range unusedImages {
 			if deleted := dockerSwarmClient.RemoveImage(imageToDelete); deleted {
 				log.Info(fmt.Sprintf("The image: %s deleted",imageToDelete.Summery.RepoDigests[0]))
+			} else {
+				log.Warn(fmt.Sprintf("The image: %s cannot deleted",imageToDelete.Summery.RepoDigests[0]))
 			}
 		}
 	} else {
@@ -40,8 +42,10 @@ func CleaningTask(){
 func excludeImage(image docker.DockerImage) bool {
 	if len(env.ExcludeImages) != 0 {
 		imagesToExclude := strings.Split(env.ExcludeImages, ",")
-		if ok := utils.FindInSlice(imagesToExclude, image.Summery.RepoDigests[0]); ok {
-			return true
+		for _, imagesToExclude := range imagesToExclude {
+			if ok:= strings.Contains(image.Summery.RepoDigests[0], imagesToExclude); ok {
+				return true
+			}
 		}
 		return false
 	}

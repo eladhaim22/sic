@@ -11,6 +11,7 @@ import (
 	"github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"net"
+	"net/http"
 	"strings"
 )
 
@@ -22,6 +23,7 @@ type DockerClient interface {
 
 type DockerClientImpl struct {
 	clients map[string]*client.Client
+	ctx context.Context
 }
 
 type DockerImage struct {
@@ -47,7 +49,11 @@ func NewDockerClient() *DockerClientImpl {
 		}
 
 		for _, ip := range ips {
-			cli, err := client.NewClientWithOpts(client.WithHost("http://" + ip),client.WithAPIVersionNegotiation())
+			httpCli := &http.Client{
+				Transport:     &http.Transport{},
+				CheckRedirect: client.CheckRedirect,
+			}
+			cli, err := client.NewClientWithOpts(client.WithHost("http://" + ip), client.WithHTTPClient(httpCli))
 			if err != nil {
 				panic(err)
 			}
@@ -72,13 +78,14 @@ func NewDockerClient() *DockerClientImpl {
 
 	return &DockerClientImpl{
 		clients: clients,
+		ctx: context.Background(),
 	}
 }
 
 func (dockerClients *DockerClientImpl) ListImages() []DockerImage {
 	images := make([]DockerImage,0)
 	for clientId, client := range dockerClients.clients {
-		clientImages, err := client.ImageList(context.Background(), types.ImageListOptions{All: true})
+		clientImages, err := client.ImageList(dockerClients.ctx, types.ImageListOptions{All: true})
 		if err != nil {
 			log.Error("Error listing images")
 			panic(err)
@@ -93,7 +100,7 @@ func (dockerClients *DockerClientImpl) ListActiveContainersImageIds() []string {
 	filterArgs := filters.NewArgs()
 	filterArgs.Add("status", "running")
 	for _, client := range dockerClients.clients {
-		clientContainers, err := client.ContainerList(context.Background(), types.ContainerListOptions{Filters: filterArgs})
+		clientContainers, err := client.ContainerList(dockerClients.ctx, types.ContainerListOptions{Filters: filterArgs})
 		if err != nil {
 			log.Error("Error listing containers")
 			panic(err)
@@ -105,7 +112,7 @@ func (dockerClients *DockerClientImpl) ListActiveContainersImageIds() []string {
 }
 
 func (dockerClients *DockerClientImpl) RemoveImage (image DockerImage) bool {
-	_, err := dockerClients.clients[image.ClientId].ImageRemove(context.Background(), image.Summery.ID, types.ImageRemoveOptions{Force: true} )
+	_, err := dockerClients.clients[image.ClientId].ImageRemove(dockerClients.ctx, image.Summery.ID, types.ImageRemoveOptions{Force: true} )
 	if err != nil {
 		return false
 	}
